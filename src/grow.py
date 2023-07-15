@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import arcade
+import ease
 from gnp.arcadelib import actor
 import bezier
 
@@ -54,7 +55,7 @@ class BezierActor(LifetimeActor):
     def draw(self):
         arcade.draw_polygon_outline((self.curve.s, self.curve.cp1, self.curve.cp2, self.curve.e), arcade.color.DARK_SLATE_GRAY, 1)
 
-        points = self.curve.get_points(0.0, self.u)
+        points = self.curve.get_points(0.0, ease.ease_out_exp(self.u, 4))
         arcade.draw_line_strip(points, arcade.color.GREEN, 3)
 
         self.u = min(1.0, self.u + 0.005)
