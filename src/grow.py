@@ -4,6 +4,8 @@ import ease
 from gnp.arcadelib import actor
 import bezier
 
+
+CURVE_LIFETIME = 6.0
 SEGMENTS = 20
 CURVE_COLOR = arcade.color.FOREST_GREEN
 BG_COLOR = arcade.color.BLACK
@@ -29,7 +31,11 @@ class Bezier:
 
 class LifetimeActor(actor.Actor):
     def __init__(self, lifetime):
+        self.lifetime = lifetime
         self.lifetime_remaining = lifetime
+
+    def get_u(self):
+        return (self.lifetime - self.lifetime_remaining) / self.lifetime
 
     def update(self, delta_time: float):
         self.lifetime_remaining -= delta_time
@@ -49,15 +55,12 @@ class BezierActor(LifetimeActor):
         assert len(points) == 4
         super().__init__(lifetime)
         self.curve = Bezier(*points)
-        self.u = 0.0
 
     def draw(self):
         arcade.draw_polygon_outline((self.curve.s, self.curve.cp1, self.curve.cp2, self.curve.e), CTRL_POINT_COLOR, 1)
 
-        points = self.curve.get_points(0.0, ease.ease_out_exp(self.u, 4))
+        points = self.curve.get_points(0.0, ease.ease_out_exp(self.get_u(), 4))
         arcade.draw_line_strip(points, CURVE_COLOR, 3)
-
-        self.u = min(1.0, self.u + 0.005)
 
 
 class MyGame(arcade.Window):
@@ -90,14 +93,14 @@ class MyGame(arcade.Window):
 
     def _create_actor(self):
         if len(self.pending_points) == 4:
-            a = BezierActor(6.0, self.pending_points)
+            a = BezierActor(CURVE_LIFETIME, self.pending_points)
             self.actors.append(a)
             self.pending_points = []
 
 
 if __name__ == '__main__':
     game = MyGame(800, 600, 'Bezier growth')
-    print('click mouse 4 times to create bezier curve')
+    print('Click mouse 4 times to create bezier curve')
     arcade.run()
 
 
