@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass
 import arcade
 import ease
@@ -5,11 +6,17 @@ from gnp.arcadelib import actor
 import bezier
 
 
+WIDTH, HEIGHT = 800, 600
 CURVE_LIFETIME = 6.0
 SEGMENTS = 20
 CURVE_COLOR = arcade.color.FOREST_GREEN
 BG_COLOR = arcade.color.BLACK
 CTRL_POINT_COLOR = (20, 20, 20)
+
+
+def random_pt():
+    return random.randint(0, WIDTH), random.randint(0, HEIGHT)
+
 
 @dataclass
 class Bezier:
@@ -17,6 +24,15 @@ class Bezier:
     cp1: arcade.Point
     cp2: arcade.Point
     e: arcade.Point
+
+    @staticmethod
+    def random():
+        return Bezier(
+            random_pt(),
+            random_pt(),
+            random_pt(),
+            random_pt()
+        )
 
     def get_point(self, u: float) -> arcade.Point:
         return bezier.bezier2cp(self.s, self.cp1, self.cp2, self.e, u)
@@ -51,14 +67,15 @@ class LifetimeActor(actor.Actor):
 
 
 class BezierActor(LifetimeActor):
-    def __init__(self, lifetime, points):
-        assert len(points) == 4
+    def __init__(self, lifetime, curve):
         super().__init__(lifetime)
-        self.curve = Bezier(*points)
+        self.curve = curve
 
     def draw(self):
+        # debug: control points
         arcade.draw_polygon_outline((self.curve.s, self.curve.cp1, self.curve.cp2, self.curve.e), CTRL_POINT_COLOR, 1)
 
+        # curve
         points = self.curve.get_points(0.0, ease.ease_out_exp(self.get_u(), 4))
         arcade.draw_line_strip(points, CURVE_COLOR, 3)
 
@@ -84,7 +101,9 @@ class MyGame(arcade.Window):
         self.actors.update(delta_time)
 
     def on_key_press(self, symbol: int, modifiers: int):
-        if symbol == arcade.key.ESCAPE:
+        if symbol == arcade.key.R:
+            self.actors.append(BezierActor(CURVE_LIFETIME, Bezier.random()))
+        elif symbol == arcade.key.ESCAPE:
             self.close()
 
     def on_mouse_press(self, x, y, button, key_modifiers):
@@ -93,14 +112,14 @@ class MyGame(arcade.Window):
 
     def _create_actor(self):
         if len(self.pending_points) == 4:
-            a = BezierActor(CURVE_LIFETIME, self.pending_points)
+            a = BezierActor(CURVE_LIFETIME, Bezier(*self.pending_points))
             self.actors.append(a)
             self.pending_points = []
 
 
 if __name__ == '__main__':
-    game = MyGame(800, 600, 'Bezier growth')
-    print('Click mouse 4 times to create bezier curve')
+    game = MyGame(WIDTH, HEIGHT, 'Bezier growth')
+    print('Click mouse 4 times to create bezier curve. Tap "R" to generate a random curve.')
     arcade.run()
 
 
